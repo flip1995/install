@@ -2,10 +2,10 @@ import os from "os";
 import { promises as fs } from "fs";
 import path from "path";
 
+import * as core_rs from "@actions-rs/core"
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as tc from "@actions/tool-cache";
-import * as http from "@actions/http-client";
 
 const CLOUDFRONT_ROOT = "https://d1ad61wkrfbmp3.cloudfront.net";
 // Path to the public key of the sign certificate.
@@ -30,20 +30,6 @@ function getRunner(): string {
         default:
             throw new Error("Unsupported OS");
     }
-}
-
-async function resolveVersion(crate: string): Promise<string> {
-    const url = `https://crates.io/api/v1/crates/${crate}`;
-    const client = new http.HttpClient(
-        "@actions-rs (https://github.com/actions-rs/)"
-    );
-
-    const resp: any = await client.getJson(url);
-    if (resp.result == null) {
-        throw new Error("Unable to fetch latest crate version");
-    }
-
-    return resp.result["crate"]["newest_version"];
 }
 
 function buildUrl(crate: string, version: string): string {
@@ -85,7 +71,7 @@ export async function downloadFromCache(
 ): Promise<void> {
     if (version == "latest") {
         core.debug(`Latest version requested for ${crate}, querying crates.io`);
-        version = await resolveVersion(crate);
+        version = await core_rs.resolveVersion(crate);
         core.info(`Newest ${crate} version available at crates.io: ${version}`);
     }
     const url = buildUrl(crate, version);
